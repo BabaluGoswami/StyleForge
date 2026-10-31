@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10131c">
+
+    <title>Neural Style Transfer Online | StyleForge Studio</title>
+
+    <meta name="description"
+        content="Transform your photos with StyleForge, an online neural style transfer studio. Upload a content image, choose an artistic style, adjust style strength, and create your own artwork using AdaIN.">
+
+    <meta name="keywords"
+        content="neural style transfer, image style transfer, AdaIN, artistic photo effects, AI art, photo style transfer, StyleForge">
+
+    <meta name="author" content="StyleForge">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="googlebot" content="index, follow">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <link rel="canonical" href="{{ request.url_root }}">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="StyleForge">
+    <meta property="og:title" content="Neural Style Transfer Online | StyleForge Studio">
+    <meta property="og:description"
+        content="Transform your photos into artistic creations with StyleForge's neural style transfer studio.">
+    <meta property="og:url" content="{{ request.url_root }}">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Neural Style Transfer Online | StyleForge">
+    <meta name="twitter:description"
+        content="Create artistic photo transformations with StyleForge using neural style transfer.">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "StyleForge",
+  "url": {{ request.url_root | tojson }},
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Any",
+  "description": "An online neural style transfer studio using a pretrained AdaIN-based model.",
+  "browserRequirements": "Requires JavaScript and a modern web browser"
+}
+</script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --bg: #10131c;
+            --surface: #171b27;
+            --surface-soft: #1d2230;
+            --border: rgba(255, 255, 255, .09);
+            --text: #f4f5f8;
+            --muted: #9ba3b5;
+            --accent: #a78bfa;
+            --accent-strong: #8b6cf0;
+            --accent-soft: rgba(167, 139, 250, .12);
+            --success: #5dd6a0;
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 90px;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "DM Sans", sans-serif;
+            line-height: 1.65;
+            overflow-x: hidden;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        .container {
+            max-width: 1160px;
+        }
+
+        .section-space {
+            padding-top: 92px;
+            padding-bottom: 92px;
+        }
+
+        .section-kicker {
+            color: var(--accent);
+            font-size: .76rem;
+            font-weight: 700;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+            margin-bottom: 13px;
+        }
+
+        .section-title {
+            font-family: "Manrope", sans-serif;
+            font-size: clamp(1.9rem, 4vw, 2.7rem);
+            font-weight: 800;
+            letter-spacing: -.045em;
+            line-height: 1.2;
+        }
+
+        .section-description {
+            color: var(--muted);
+            max-width: 620px;
+            margin: 14px auto 0;
+        }
+
+        /* Navigation */
+
+        .site-nav {
+            min-height: 76px;
+            background: rgba(16, 19, 28, .88);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .navbar-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 11px;
+            color: var(--text) !important;
+            font-family: "Manrope", sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -.04em;
+        }
+
+        .brand-mark {
+            width: 37px;
+            height: 37px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: #171324;
+            background: linear-gradient(135deg, #c4b5fd, #9275ef);
+            font-size: 1rem;
+        }
+
+        .brand-dot {
+            color: var(--accent);
+        }
+
+        .navbar-nav {
+            gap: 7px;
+        }
+
+        .site-nav .nav-link {
+            color: #b5bbca !important;
+            font-size: .9rem;
+            font-weight: 600;
+            padding: 10px 13px !important;
+            transition: color .2s ease;
+        }
+
+        .site-nav .nav-link:hover,
+        .site-nav .nav-link:focus {
+            color: white !important;
+        }
+
+        .nav-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 17px;
+            border: 1px solid rgba(167, 139, 250, .4);
+            border-radius: 999px;
+            color: #e5ddff;
+            text-decoration: none;
+            font-size: .88rem;
+            font-weight: 700;
+            transition: .2s ease;
+        }
+
+        .nav-cta:hover {
+            background: var(--accent-soft);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .navbar-toggler {
+            border-color: var(--border);
+            box-shadow: none !important;
+        }
+
+        /* Hero */
+
+        .hero {
+            position: relative;
+            padding: 155px 0 92px;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            width: 560px;
+            height: 560px;
+            top: -290px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: radial-gradient(circle, rgba(139, 108, 240, .18), transparent 68%);
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 850px;
+            margin: auto;
+            text-align: center;
+        }
+
+        .hero-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 14px;
+            border: 1px solid rgba(167, 139, 250, .25);
+            border-radius: 999px;
+            background: rgba(167, 139, 250, .07);
+            color: #d2c4ff;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            margin-bottom: 25px;
+        }
+
+        .hero-label i {
+            font-size: .7rem;
+        }
+
+        .hero h1 {
+            font-family: "Manrope", sans-serif;
+            font-size: clamp(2.7rem, 7vw, 5.2rem);
+            font-weight: 800;
+            letter-spacing: -.075em;
+            line-height: 1.06;
+            margin-bottom: 23px;
+        }
+
+        .hero h1 span {
+            color: var(--accent);
+        }
+
+        .hero-description {
+            max-width: 630px;
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: clamp(1rem, 2vw, 1.12rem);
+        }
+
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 13px;
+            margin-top: 34px;
+        }
+
+        .btn-main {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 23px;
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            background: var(--accent);
+            color: #171324;
+            text-decoration: none;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+        .btn-main:hover {
+            background: #c4b5fd;
+            border-color: #c4b5fd;
+            color: #171324;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary-custom {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            padding: 14px 21px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #e5e7ef;
+            text-decoration: none;
+            font-weight: 700;
+            transition: .2s ease;
+        }
+
+        .btn-secondary-custom:hover {
+            border-color: rgba(167, 139, 250, .5);
+            background: var(--accent-soft);
+            color: white;
+        }
+
+        .hero-note {
+            margin-top: 22px;
+            color: #788196;
+            font-size: .8rem;
+        }
+
+        /* Studio */
+
+        .studio-section {
+            padding: 35px 0 95px;
+        }
+
+        .studio-shell {
+            padding: 27px;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(29, 34, 48, .96), rgba(20, 24, 35, .98));
+            box-shadow: 0 25px 80px rgba(0, 0, 0, .22);
+        }
+
+        .studio-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .studio-heading h2 {
+            font-family: "Manrope", sans-serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .studio-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #a9b2c3;
+            font-size: .78rem;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 12px rgba(93, 214, 160, .45);
+        }
+
+        .upload-card {
+            height: 100%;
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 17px;
+            background: rgba(12, 15, 23, .42);
+        }
+
+        .upload-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .upload-card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: .95rem;
+        }
+
+        .upload-card-title i {
+            color: var(--accent);
+        }
+
+        .upload-step {
+            color: #7f899e;
+            font-size: .76rem;
+        }
+
+        .preview-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 290px;
+            overflow: hidden;
+            border: 1px dashed rgba(167, 139, 250, .35);
+            border-radius: 13px;
+            background: #111520;
+            color: #8992a5;
+        }
+
+        .preview-placeholder {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .preview-placeholder i {
+            display: block;
+            color: #a78bfa;
+            font-size: 2rem;
+            margin-bottom: 13px;
+        }
+
+        .preview-placeholder strong {
+            display: block;
+            color: #d8dbea;
+            font-size: .9rem;
+            margin-bottom: 5px;
+        }
+
+        .preview-placeholder span {
+            display: block;
+            font-size: .78rem;
+            color: #7f899e;
+        }
+
+        .preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #111520;
+        }
+
+        .file-input-label {
+            display: block;
+            margin: 15px 0 8px;
+            color: #cbd0dd;
+            font-size: .82rem;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .file-input {
+            width: 100%;
+            min-height: 45px;
+            padding: 7px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #202636;
+            color: #cbd0dd;
+            font-size: .8rem;
+        }
+
+        .file-input::file-selector-button {
+            margin-right: 10px;
+            padding: 7px 12px;
+            border: 0;
+            border-radius: 7px;
+            background: #353047;
+            color: #e9e2ff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .file-input:focus {
+            outline: 2px solid rgba(167, 139, 250, .35);
+            border-color: var(--accent);
+        }
+
+        .file-help {
+            color: #788196;
+            font-size: .74rem;
+            margin-top: 9px;
+        }
+
+        .controls-panel {
+            max-width: 720px;
+            margin: 31px auto 0;
+            padding: 22px;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: rgba(12, 15, 23, .35);
+        }
+
+        .control-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .control-heading label {
+            color: #e8e8f0;
+            font-size: .9rem;
+            font-weight: 700;
+        }
+
+        .range-number {
+            min-width: 52px;
+            padding: 5px 9px;
+            border-radius: 8px;
+            background: var(--accent-soft);
+            color: #d9ceff;
+            font-weight: 800;
+            text-align: center;
+            font-size: .85rem;
+        }
+
+        #alphaRange {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            color: #7f899e;
+            font-size: .75rem;
+            margin-top: 7px;
+        }
+
+        .generate-wrap {
+            text-align: center;
+            margin-top: 27px;
+        }
+
+        .generate-btn {
+            min-width: 230px;
+            padding: 15px 24px;
+            border: 0;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #171324;
+            font-size: .95rem;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+
+        .generate-btn:hover {
+            background: #c4b5fd;
+            transform: translateY(-2px);
+        }
+
+        .generate-btn:disabled {
+            opacity: .7;
+            cursor: wait;
+            transform: none;
+        }
+
+        .generate-note {
+            margin-top: 12px;
+            color: #7f899e;
+            font-size: .76rem;
+        }
+
+        /* Result */
+
+        .result-section {
+            margin-top: 35px;
+            scroll-margin-top: 100px;
+        }
+
+        .result-card {
+            overflow: hidden;
+            border: 1px solid rgba(93, 214, 160, .25);
+            border-radius: 18px;
+            background: #171f27;
+        }
+
+        .result-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 17px 20px;
+            border-bottom: 1px solid rgba(93, 214, 160, .15);
+            color: #a8f0cd;
+            font-weight: 800;
+        }
+
+        .result-image {
+            display: block;
+            width: 100%;
+            max-height: 650px;
+            object-fit: contain;
+            background: #10131c;
+        }
+
+        .result-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 18px 20px;
+        }
+
+        .result-footer p {
+            margin: 0;
+            color: var(--muted);
+            font-size: .82rem;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: rgba(93, 214, 160, .13);
+            border: 1px solid rgba(93, 214, 160, .3);
+            color: #a8f0cd;
+            text-decoration: none;
+            font-size: .85rem;
+            font-weight: 800;
+        }
+
+        .download-btn:hover {
+            background: rgba(93, 214, 160, .22);
+            color: white;
+        }
+
+        .error-message {
+            padding: 15px 18px;
+            border: 1px solid rgba(248, 113, 113, .3);
+            border-radius: 12px;
+            background: rgba(127, 29, 29, .2);
+            color: #fecaca;
+            margin-top: 22px;
+        }
+
+        /* How it works */
+
+        .process-card {
+            height: 100%;
+            padding: 25px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            transition: border-color .2s ease, transform .2s ease;
+        }
+
+        .process-card:hover {
+            border-color: rgba(167, 139, 250, .35);
+            transform: translateY(-4px);
+        }
+
+        .process-icon {
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 19px;
+            border-radius: 13px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        .process-card h3 {
+            font-size: 1rem;
+            font-weight: 800;
+            margin-bottom: 9px;
+        }
+
+        .process-card p {
+            color: var(--muted);
+            font-size: .86rem;
+            margin: 0;
+        }
+
+        /* Gallery */
+
+        .example-card {
+            height: 100%;
+            padding: 17px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+        }
+
+        .example-title {
+            font-size: .95rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .example-item {
+            min-width: 0;
+        }
+
+        .example-item img {
+            display: block;
+            width: 100%;
+            height: 170px;
+            object-fit: contain;
+            border-radius: 9px;
+            background: #10131c;
+            border: 1px solid var(--border);
+        }
+
+        .example-item.output img {
+            border-color: rgba(167, 139, 250, .4);
+        }
+
+        .example-caption {
+            color: #9ba3b5;
+            font-size: .72rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .example-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            font-size: .85rem;
+            margin: 10px 0;
+        }
+
+        /* FAQ */
+
+        .faq-list {
+            max-width: 850px;
+            margin: 35px auto 0;
+        }
+
+        .accordion-item {
+            margin-bottom: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            background: var(--surface) !important;
+        }
+
+        .accordion-button {
+            padding: 18px 20px;
+            background: var(--surface) !important;
+            color: #eef0f7 !important;
+            font-size: .92rem;
+            font-weight: 700;
+            box-shadow: none !important;
+        }
+
+        .accordion-button::after {
+            filter: invert(1);
+        }
+
+        .accordion-button:not(.collapsed) {
+            color: #d5c9ff !important;
+        }
+
+        .accordion-body {
+            padding: 0 20px 19px;
+            color: var(--muted);
+            font-size: .87rem;
+        }
+
+        /* Contact and footer */
+
+        .contact-panel {
+            padding: 42px 25px;
+            border: 1px solid rgba(167, 139, 250, .2);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(167, 139, 250, .1), rgba(29, 34, 48, .7));
+            text-align: center;
+        }
+
+        .contact-panel h2 {
+            font-family: "Manrope", sans-serif;
+            font-size: clamp(1.7rem, 4vw, 2.3rem);
+            font-weight: 800;
+            letter-spacing: -.04em;
+        }
+
+        .contact-panel p {
+            max-width: 570px;
+            margin: 13px auto 22px;
+            color: var(--muted);
+        }
+
+        .site-footer {
+            padding: 55px 0 25px;
+            border-top: 1px solid var(--border);
+            background: #0c0f17;
+        }
+
+        .footer-brand-description {
+            max-width: 340px;
+            margin-top: 17px;
+            color: #8992a5;
+            font-size: .85rem;
+        }
+
+        .footer-heading {
+            color: #f0f1f6;
+            font-size: .88rem;
+            font-weight: 800;
+            margin-bottom: 17px;
+        }
+
+        .footer-link {
+            display: block;
+            width: fit-content;
+            margin-bottom: 11px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #929bad;
+            text-decoration: none;
+            font-size: .83rem;
+            cursor: pointer;
+            transition: color .2s ease;
+        }
+
+        .footer-link:hover {
+            color: #d6caff;
+        }
+
+        .social-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .social-link {
+            width: 39px;
+            height: 39px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: var(--surface);
+            color: #c7ccda;
+            text-decoration: none;
+            cursor: pointer;
+            transition: .2s ease;
+        }
+
+        .social-link:hover {
+            border-color: rgba(167, 139, 250, .45);
+            background: var(--accent-soft);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 22px;
+            margin-top: 35px;
+            border-top: 1px solid var(--border);
+            color: #737d91;
+            font-size: .77rem;
+        }
+
+        /* Launch notice modal */
+
+        .launch-modal .modal-content {
+            border: 1px solid rgba(167, 139, 250, .25);
+            border-radius: 18px;
+            background: #1b2030;
+            color: var(--text);
+        }
+
+        .launch-modal .modal-header {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .launch-modal .modal-footer {
+            border-top: 1px solid var(--border);
+        }
+
+        .launch-modal .btn-close {
+            filter: invert(1);
+        }
+
+        .launch-icon {
+            width: 54px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 1.35rem;
+        }
+
+        .launch-modal .modal-body {
+            padding: 28px;
+            text-align: center;
+        }
+
+        .launch-modal .modal-body p {
+            color: var(--muted);
+            margin-bottom: 0;
+        }
+
+        .modal-ok {
+            padding: 9px 20px;
+            border: 0;
+            border-radius: 9px;
+            background: var(--accent);
+            color: #171324;
+            font-weight: 800;
+        }
+
+        /* Processing overlay */
+
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+            background: rgba(10, 12, 19, .91);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            visibility: hidden;
+            transition: .25s ease;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loader-spinner {
+            width: 55px;
+            height: 55px;
+            border: 4px solid rgba(167, 139, 250, .15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loader-overlay h3 {
+            margin-top: 23px;
+            font-family: "Manrope", sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .loader-overlay p {
+            color: var(--muted);
+            font-size: .86rem;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                padding: 14px 0 18px;
+            }
+
+            .navbar-nav {
+                gap: 0;
+            }
+
+            .nav-cta {
+                margin-top: 10px;
+                width: fit-content;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .hero {
+                padding: 130px 0 65px;
+            }
+
+            .section-space {
+                padding-top: 68px;
+                padding-bottom: 68px;
+            }
+
+            .studio-section {
+                padding-top: 15px;
+                padding-bottom: 65px;
+            }
+
+            .studio-shell {
+                padding: 17px;
+                border-radius: 18px;
+            }
+
+            .preview-box {
+                height: 230px;
+            }
+
+            .controls-panel {
+                padding: 17px;
+            }
+
+            .example-item img {
+                height: 135px;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg site-nav fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#home" aria-label="StyleForge home">
+                <span class="brand-mark"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                <span>StyleForge<span class="brand-dot">.</span></span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation"
+                aria-controls="mainNavigation" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNavigation">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" href="#home">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#studio">Studio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#how-it-works">How it works</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#gallery">Gallery</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#faq">FAQ</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                </ul>
+
+                <a href="#studio" class="nav-cta ms-lg-3">
+                    Open Studio <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+
+        <!-- Hero -->
+        <section class="hero" id="home">
+            <div class="container">
+                <div class="hero-content">
+                    <div class="hero-label">
+                        <i class="fa-solid fa-sparkles"></i>
+                        NEURAL STYLE TRANSFER STUDIO
+                    </div>
+
+                    <h1>
+                        Your photo.<br>
+                        A new artistic <span>identity.</span>
+                    </h1>
+
+                    <p class="hero-description">
+                        Bring two images together. Choose a photo, pick an artistic
+                        reference, and create a new visual interpretation with
+                        neural style transfer.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="#studio" class="btn-main">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            Create artwork
+                        </a>
+                        <a href="#gallery" class="btn-secondary-custom">
+                            Explore examples
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </a>
+                    </div>
+
+                    <p class="hero-note">
+                        <i class="fa-solid fa-circle-info me-1"></i>
+                        Powered by an AdaIN-based neural style transfer model.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Studio -->
+        <section class="studio-section" id="studio">
+            <div class="container">
+                <div class="studio-shell">
+
+                    <div class="studio-heading">
+                        <div>
+                            <div class="section-kicker mb-2">CREATION WORKSPACE</div>
+                            <h2>Build your artwork</h2>
+                        </div>
+                        <div class="studio-status">
+                            <span class="status-dot"></span>
+                            Studio ready
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {{ form.hidden_tag() }}
+
+                        <div class="row g-4">
+
+                            <!-- Content image -->
+                            <div class="col-lg-6">
+                                <div class="upload-card">
+                                    <div class="upload-card-top">
+                                        <div class="upload-card-title">
+                                            <i class="fa-regular fa-image"></i>
+                                            Content image
+                                        </div>
+                                        <span class="upload-step">01 / 02</span>
+                                    </div>
+
+                                    <div class="preview-box" id="contentPreview">
+                                        {% if content_image %}
+                                        <img src="{{ url_for('send_image', filename=content_image) }}"
+                                            alt="Selected content image">
+                                        {% else %}
+                                        <div class="preview-placeholder">
+                                            <i class="fa-solid fa-image"></i>
+                                            <strong>Your main photo goes here</strong>
+                                            <span>Choose the image whose structure you want to preserve.</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <label class="file-input-label" for="contentUpload">
+                                        Choose content image
+                                    </label>
+                                    {{ form.content(class_="file-input", id="contentUpload", accept="image/*",
+                                    onchange="previewFile(this, 'contentPreview')") }}
+
+                                    <p class="file-help">
+                                        Use a clear photo with a subject or scene.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Style image -->
+                            <div class="col-lg-6">
+                                <div class="upload-card">
+                                    <div class="upload-card-top">
+                                        <div class="upload-card-title">
+                                            <i class="fa-solid fa-palette"></i>
+                                            Style reference
+                                        </div>
+                                        <span class="upload-step">02 / 02</span>
+                                    </div>
+
+                                    <div class="preview-box" id="stylePreview">
+                                        {% if style_image %}
+                                        <img src="{{ url_for('send_image', filename=style_image) }}"
+                                            alt="Selected style reference">
+                                        {% else %}
+                                        <div class="preview-placeholder">
+                                            <i class="fa-solid fa-palette"></i>
+                                            <strong>Your style reference goes here</strong>
+                                            <span>Choose a painting, artwork, texture or visual style.</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <label class="file-input-label" for="styleUpload">
+                                        Choose style image
+                                    </label>
+                                    {{ form.style(class_="file-input", id="styleUpload", accept="image/*",
+                                    onchange="previewFile(this, 'stylePreview')") }}
+
+                                    <p class="file-help">
+                                        Try paintings, sketches, abstract art or textures.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alpha control -->
+                        <div class="controls-panel">
+                            <div class="control-heading">
+                                <label for="alphaRange">
+                                    <i class="fa-solid fa-sliders me-2"></i>
+                                    Style strength
+                                </label>
+                                <span class="range-number" id="rangeValue">1.0</span>
+                            </div>
+
+                            {{ form.alpha(class_="form-range", id="alphaRange", type="range", min="0", max="1",
+                            step="0.1") }}
+
+                            <div class="range-labels">
+                                <span>Preserve content</span>
+                                <span>Stronger style influence</span>
+                            </div>
+                        </div>
+
+                        <div class="generate-wrap">
+                            {{ form.submit(class_="generate-btn", id="generateButton", value="Generate artwork") }}
+
+                            <p class="generate-note">
+                                <i class="fa-solid fa-circle-info me-1"></i>
+                                Processing time depends on image size and available computing resources.
+                            </p>
+                        </div>
+                    </form>
+
+                    <!-- Error -->
+                    {% if error %}
+                    <div class="error-message" role="alert">
+                        <i class="fa-solid fa-circle-exclamation me-2"></i>
+                        <strong>Something went wrong:</strong> {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Result -->
+                    {% if result_image %}
+                    <div class="result-section" id="resultSection">
+                        <div class="result-card">
+                            <div class="result-heading">
+                                <i class="fa-solid fa-circle-check"></i>
+                                Your artwork is ready
+                            </div>
+
+                            <img src="{{ url_for('send_image', filename=result_image) }}" class="result-image"
+                                alt="Generated stylized result">
+
+                            <div class="result-footer">
+                                <p>Your stylized image has been generated successfully.</p>
+
+                                <a href="{{ url_for('send_image', filename=result_image) }}" download
+                                    class="download-btn">
+                                    <i class="fa-solid fa-download"></i>
+                                    Download artwork
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        <section class="section-space" id="how-it-works">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <div class="section-kicker">THE PROCESS</div>
+                    <h2 class="section-title">From two images to one creation.</h2>
+                    <p class="section-description">
+                        A simple workflow that combines the content of one image
+                        with the visual characteristics of another.
+                    </p>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="process-card">
+                            <div class="process-icon">
+                                <i class="fa-solid fa-image"></i>
+                            </div>
+                            <h3>01. Select your content</h3>
+                            <p>
+                                Upload the photograph or image whose main structure
+                                and visual composition you want to retain.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="process-card">
+                            <div class="process-icon">
+                                <i class="fa-solid fa-palette"></i>
+                            </div>
+                            <h3>02. Choose a style</h3>
+                            <p>
+                                Add an artwork or reference image to provide the
+                                colors, textures and visual style for the transfer.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="process-card">
+                            <div class="process-icon">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </div>
+                            <h3>03. Generate your result</h3>
+                            <p>
+                                Adjust style strength, run the transfer and view
+                                your generated image in the result area.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gallery -->
+        <section class="section-space" id="gallery">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <div class="section-kicker">EXAMPLE WORK</div>
+                    <h2 class="section-title">See the transformation.</h2>
+                    <p class="section-description">
+                        A few example outputs included with this project.
+                        Results can vary depending on the selected images.
+                    </p>
+                </div>
+
+                <div class="row g-4">
+
+                    <div class="col-lg-6">
+                        <div class="example-card">
+                            <div class="example-title">Sketch-inspired result</div>
+
+                            <div class="example-grid">
+                                <div class="example-item">
+                                    <img src="{{ url_for('send_example', filename='brad_pitt.jpg') }}"
+                                        alt="Example content image" loading="lazy">
+                                    <div class="example-caption">CONTENT</div>
+                                </div>
+
+                                <div class="example-item">
+                                    <img src="{{ url_for('send_example', filename='sketch.png') }}"
+                                        alt="Sketch style reference" loading="lazy">
+                                    <div class="example-caption">STYLE</div>
+                                </div>
+                            </div>
+
+                            <div class="example-arrow">
+                                <i class="fa-solid fa-arrow-down"></i>
+                                <span class="ms-2">STYLE TRANSFER</span>
+                            </div>
+
+                            <div class="example-item output">
+                                <img src="{{ url_for('send_example', filename='stylized_brad_pitt.jpg') }}"
+                                    alt="Sketch-inspired style transfer result" loading="lazy">
+                                <div class="example-caption">OUTPUT</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="example-card">
+                            <div class="example-title">Art-inspired result</div>
+
+                            <div class="example-grid">
+                                <div class="example-item">
+                                    <img src="{{ url_for('send_example', filename='brad_pitt.jpg') }}"
+                                        alt="Example content image" loading="lazy">
+                                    <div class="example-caption">CONTENT</div>
+                                </div>
+
+                                <div class="example-item">
+                                    <img src="{{ url_for('send_example', filename='picasso_seated_nude_hr.jpg') }}"
+                                        alt="Art style reference" loading="lazy">
+                                    <div class="example-caption">STYLE</div>
+                                </div>
+                            </div>
+
+                            <div class="example-arrow">
+                                <i class="fa-solid fa-arrow-down"></i>
+                                <span class="ms-2">STYLE TRANSFER</span>
+                            </div>
+
+                            <div class="example-item output">
+                                <img src="{{ url_for('send_example', filename='stylized_brad_pitt (1).jpg') }}"
+                                    alt="Art-inspired style transfer result" loading="lazy">
+                                <div class="example-caption">OUTPUT</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="section-space" id="faq">
+            <div class="container">
+                <div class="text-center">
+                    <div class="section-kicker">HELP CENTER</div>
+                    <h2 class="section-title">Frequently asked questions.</h2>
+                    <p class="section-description">
+                        A few useful details about the current StyleForge project.
+                    </p>
+                </div>
+
+                <div class="accordion faq-list" id="faqAccordion">
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faqOne" aria-expanded="true" aria-controls="faqOne">
+                                What is neural style transfer?
+                            </button>
+                        </h3>
+                        <div id="faqOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Neural style transfer is a computer vision technique
+                                that combines the content of one image with the
+                                visual style of another image.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faqTwo" aria-expanded="false" aria-controls="faqTwo">
+                                Which model does this project use?
+                            </button>
+                        </h3>
+                        <div id="faqTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                This project uses an AdaIN-based style transfer
+                                approach with pretrained VGG encoder weights and
+                                a trained decoder checkpoint.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faqThree" aria-expanded="false" aria-controls="faqThree">
+                                What does style strength control?
+                            </button>
+                        </h3>
+                        <div id="faqThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Style strength controls the blend between the
+                                content representation and the style-transferred
+                                representation. Lower values preserve more of the
+                                original content; higher values apply more style
+                                influence.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faqFour" aria-expanded="false" aria-controls="faqFour">
+                                Which image formats can I upload?
+                            </button>
+                        </h3>
+                        <div id="faqFour" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                The current application supports JPG, JPEG, PNG,
+                                JFIF, WEBP, BMP, GIF, TIF and TIFF image extensions.
+                                The upload limit is 10 MB per request.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faqFive" aria-expanded="false" aria-controls="faqFive">
+                                Which technologies power this project?
+                            </button>
+                        </h3>
+                        <div id="faqFive" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                The application uses Python, Flask, PyTorch,
+                                Torchvision, Pillow, HTML, CSS, JavaScript
+                                and Bootstrap.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#faqSix" aria-expanded="false" aria-controls="faqSix">
+                                Is the platform free to use?
+                            </button>
+                        </h3>
+                        <div id="faqSix" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                This project demo does not currently display
+                                paid plans or subscriptions. Availability may
+                                depend on the deployment and hosting environment.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact -->
+        <section class="section-space" id="contact">
+            <div class="container">
+                <div class="contact-panel">
+                    <div class="section-kicker">STAY CONNECTED</div>
+                    <h2>Something creative starts here.</h2>
+                    <p>
+                        Have feedback or want to follow the project's journey?
+                        Our communication channels are currently being prepared.
+                        Thank you for your interest and support.
+                    </p>
+                    <button type="button" class="btn-main" data-launch-channel="Contact">
+                        <i class="fa-regular fa-paper-plane"></i>
+                        Get in touch
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="row g-4">
+
+                <div class="col-lg-5 col-md-6">
+                    <a class="navbar-brand" href="#home">
+                        <span class="brand-mark"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                        <span>StyleForge<span class="brand-dot">.</span></span>
+                    </a>
+
+                    <p class="footer-brand-description">
+                        An image style transfer studio built to explore the
+                        intersection of technology and visual creativity.
+                    </p>
+                </div>
+
+                <div class="col-lg-2 col-md-6">
+                    <div class="footer-heading">Explore</div>
+                    <a href="#home" class="footer-link">Home</a>
+                    <a href="#studio" class="footer-link">Studio</a>
+                    <a href="#how-it-works" class="footer-link">How it works</a>
+                    <a href="#gallery" class="footer-link">Gallery</a>
+                    <a href="#faq" class="footer-link">FAQ</a>
+                </div>
+
+                <div class="col-lg-2 col-md-6">
+                    <div class="footer-heading">Project</div>
+                    <a href="#contact" class="footer-link">Contact</a>
+                    <button type="button" class="footer-link" data-launch-channel="Email">
+                        Email updates
+                    </button>
+                    <button type="button" class="footer-link" data-launch-channel="GitHub">
+                        Source updates
+                    </button>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <div class="footer-heading">Follow the journey</div>
+                    <div class="social-links">
+                        <button type="button" class="social-link" data-launch-channel="Instagram"
+                            aria-label="Instagram">
+                            <i class="fa-brands fa-instagram"></i>
+                        </button>
+
+                        <button type="button" class="social-link" data-launch-channel="X / Twitter"
+                            aria-label="X or Twitter">
+                            <i class="fa-brands fa-x-twitter"></i>
+                        </button>
+
+                        <button type="button" class="social-link" data-launch-channel="Facebook" aria-label="Facebook">
+                            <i class="fa-brands fa-facebook-f"></i>
+                        </button>
+
+                        <button type="button" class="social-link" data-launch-channel="GitHub" aria-label="GitHub">
+                            <i class="fa-brands fa-github"></i>
+                        </button>
+
+                        <button type="button" class="social-link" data-launch-channel="Email" aria-label="Email">
+                            <i class="fa-regular fa-envelope"></i>
+                        </button>
+                    </div>
+
+                    <p class="footer-brand-description mt-3">
+                        Official social and contact channels are coming soon.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="footer-bottom">
+                <span>© <span id="currentYear"></span> StyleForge. All rights reserved.</span>
+                <span>Created with creativity and code.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Social / Email launch notice -->
+    <div class="modal fade launch-modal" id="launchModal" tabindex="-1" aria-labelledby="launchModalTitle"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title" id="launchModalTitle">A quick update</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="launch-icon">
+                        <i class="fa-solid fa-rocket"></i>
+                    </div>
+
+                    <h5 class="fw-bold mb-3" id="launchChannelName">
+                        Coming soon
+                    </h5>
+
+                    <p>
+                        Our team is currently working on bringing this channel
+                        to you. The official account will be launching soon.
+                        Thank you for your time, patience and support!
+                    </p>
+                </div>
+
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="modal-ok" data-bs-dismiss="modal">
+                        Thank you
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing overlay -->
+    <div class="loader-overlay" id="loader" aria-live="polite" aria-busy="true">
+        <div class="loader-spinner"></div>
+        <h3>Creating your artwork</h3>
+        <p>Please wait while the style transfer is being processed.</p>
+        <p class="small">Please do not refresh or close this page.</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Image preview
+        function previewFile(input, previewId) {
+            const preview = document.getElementById(previewId);
+            const file = input.files && input.files[0];
+
+            if (!preview || !file) {
+                return;
+            }
+
+            if (!file.type.startsWith("image/")) {
+                input.value = "";
+                alert("Please select a valid image file.");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                preview.innerHTML = "";
+
+                const image = document.createElement("img");
+                image.src = event.target.result;
+                image.alt = "Selected image preview";
+
+                preview.appendChild(image);
+            };
+
+            reader.onerror = function () {
+                alert("Unable to preview this image. Please try another file.");
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+            // Footer year
+            document.getElementById("currentYear").textContent =
+                new Date().getFullYear();
+
+            // Style strength display
+            const range = document.getElementById("alphaRange");
+            const rangeValue = document.getElementById("rangeValue");
+
+            function updateRangeValue() {
+                if (range && rangeValue) {
+                    rangeValue.textContent = Number(range.value).toFixed(1);
+                }
+            }
+
+            if (range) {
+                range.addEventListener("input", updateRangeValue);
+                updateRangeValue();
+            }
+
+            // Social and contact launch message
+            const launchModalElement = document.getElementById("launchModal");
+            const launchModal = new bootstrap.Modal(launchModalElement);
+            const launchChannelName = document.getElementById("launchChannelName");
+
+            document.querySelectorAll("[data-launch-channel]").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const channel = button.getAttribute("data-launch-channel");
+                    launchChannelName.textContent = channel + " — Coming soon";
+                    launchModal.show();
+                });
+            });
+
+            // Close mobile navigation after selecting a section
+            document.querySelectorAll("#mainNavigation .nav-link, #mainNavigation .nav-cta")
+                .forEach(function (link) {
+                    link.addEventListener("click", function () {
+                        const navElement = document.getElementById("mainNavigation");
+                        const navInstance = bootstrap.Collapse.getInstance(navElement);
+
+                        if (navInstance) {
+                            navInstance.hide();
+                        }
+                    });
+                });
+
+
+            // Validate files before form submission
+            const uploadForm = document.getElementById("uploadForm");
+            const loader = document.getElementById("loader");
+            const generateButton = document.getElementById("generateButton");
+
+            if (uploadForm) {
+                uploadForm.addEventListener("submit", function (event) {
+                    const contentFile = document.getElementById("contentUpload");
+                    const styleFile = document.getElementById("styleUpload");
+
+                    const contentPath = uploadForm.querySelector(
+                        'input[name="content_path"]'
+                    );
+
+                    const stylePath = uploadForm.querySelector(
+                        'input[name="style_path"]'
+                    );
+
+                    const hasContent =
+                        contentFile.files.length > 0 ||
+                        Boolean(contentPath && contentPath.value);
+
+                    const hasStyle =
+                        styleFile.files.length > 0 ||
+                        Boolean(stylePath && stylePath.value);
+
+                    if (!hasContent || !hasStyle) {
+                        event.preventDefault();
+                        alert("Please select both a content image and a style reference.");
+                        return;
+                    }
+
+                    const maxSize = 10 * 1024 * 1024;
+
+                    if (
+                        (contentFile.files.length > 0 &&
+                            contentFile.files[0].size > maxSize) ||
+                        (styleFile.files.length > 0 &&
+                            styleFile.files[0].size > maxSize)
+                    ) {
+                        event.preventDefault();
+                        alert("Each image must be 10 MB or smaller.");
+                        return;
+                    }
+
+                    if (generateButton) {
+                        generateButton.disabled = true;
+                        generateButton.value = "Processing...";
+                        generateButton.textContent = "Processing...";
+                    }
+
+                    if (loader) {
+                        loader.classList.add("active");
+                    }
+                });
+            }
+
+
+            // Scroll to result after server response
+            const resultSection = document.getElementById("resultSection");
+
+            if (resultSection) {
+                setTimeout(function () {
+                    resultSection.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }, 250);
+            }
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Git backup
+.git_backup/
+
+# User uploads and generated images
+NST_Code/static/uploads/*
+!NST_Code/static/uploads/.gitkeep
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.original.bak
+
+# Deployment-only: exclude training and research files
+code.ipynb
+Demo_IO_Images/
+NST_Code/content_data/
+NST_Code/style_data/
+NST_Code/train.py
+NST_Code/adain_algo.png
+NST_Code/experiment/final_exp/options.txt
+NST_Code/experiment/final_exp/sample_iter_*.png
