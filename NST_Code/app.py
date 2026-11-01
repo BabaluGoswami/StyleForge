@@ -32,7 +32,6 @@ EXAMPLES_DIR = BASE_DIR / "examples"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Supported image formats
 ALLOWED_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".jfif",
     ".webp", ".bmp", ".gif", ".tif", ".tiff"
@@ -47,6 +46,110 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 app.config["UPLOAD_FOLDER"] = str(UPLOAD_DIR)
 
 Bootstrap(app)
+
+
+# CPU optimization
+CPU_THREADS = max(
+    1,
+    int(os.environ.get("TORCH_NUM_THREADS", "1"))
+)
+
+torch.set_num_threads(CPU_THREADS)
+
+try:
+    torch.set_num_interop_threads(1)
+except RuntimeError:
+    pass
+
+
+# Device and image resolution
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+IMAGE_SIZE = int(os.environ.get("IMAGE_SIZE", "256"))
+
+if IMAGE_SIZE not in (128, 256, 512):
+    raise ValueError("IMAGE_SIZE must be 128, 256 or 512")
+
+
+# Model checkpoint paths
+VGG_PATH = BASE_DIR / "vgg_normalised.pth"
+DECODER_PATH = (
+    BASE_DIR / "experiment" / "final_exp" / "decoder_final.pth"
+)
+
+if not VGG_PATH.is_file():
+    raise FileNotFoundError(
+        f"VGG checkpoint not found: {VGG_PATH}"
+    )
+
+if not DECODER_PATH.is_file():
+    raise FileNotFoundError(
+        f"Decoder checkpoint not found: {DECODER_PATH}"
+    )
+
+
+# Upload form
+class UploadForm(FlaskForm):
+    content = FileField(
+        "Content Image",
+        validators=[
+            FileAllowed(
+                [
+                    "jpg", "jpeg", "png", "jfif", "webp",
+                    "bmp", "gif", "tif", "tiff"
+                ],
+                "Unsupported image format."
+            )
+        ]
+    )
+
+    style = FileField(
+        "Style Image",
+        validators=[
+            FileAllowed(
+                [
+                    "jpg", "jpeg", "png", "jfif", "webp",
+                    "bmp", "gif", "tif", "tiff"
+                ],
+                "Unsupported image format."
+            )
+        ]
+    )
+
+    content_path = HiddenField()
+    style_path = HiddenField()
+
+    alpha = FloatField(
+        "Alpha",
+        default=1.0,
+        validators=[
+            InputRequired(),
+            NumberRange(min=0, max=1)
+        ]
+    )
+
+    submit = SubmitField("Transfer Style")
+
+
+# Load models only once
+encoder = VGGEncoder(str(VGG_PATH)).to(device).eval()
+decoder = Decoder().to(device)
+
+decoder.load_state_dict(
+    torch.load(
+        DECODER_PATH,
+        map_location=device,
+        weights_only=True
+    )
+)
+
+decoder.eval()
+
+print(f"Model loaded successfully on {device}")
+print(f"Image resolution: {IMAGE_SIZE}x{IMAGE_SIZE}")
+print(f"PyTorch CPU threads: {CPU_THREADS}")
 
 
 # SEO: Robots.txt
@@ -78,82 +181,6 @@ def sitemap_xml():
 </urlset>"""
 
     return Response(xml, mimetype="application/xml")
-
-
-# Device and image resolution
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-IMAGE_SIZE = int(os.environ.get("IMAGE_SIZE", "256"))
-
-if IMAGE_SIZE not in (256, 512):
-    raise ValueError("IMAGE_SIZE must be 256 or 512")
-
-
-# Model checkpoint paths
-VGG_PATH = BASE_DIR / "vgg_normalised.pth"
-DECODER_PATH = BASE_DIR / "experiment" / "final_exp" / "decoder_final.pth"
-
-if not VGG_PATH.is_file():
-    raise FileNotFoundError(f"VGG checkpoint not found: {VGG_PATH}")
-
-if not DECODER_PATH.is_file():
-    raise FileNotFoundError(f"Decoder checkpoint not found: {DECODER_PATH}")
-
-
-# Upload form
-class UploadForm(FlaskForm):
-    content = FileField(
-        "Content Image",
-        validators=[
-            FileAllowed(
-                ["jpg", "jpeg", "png", "jfif", "webp",
-                 "bmp", "gif", "tif", "tiff"],
-                "Unsupported image format."
-            )
-        ]
-    )
-
-    style = FileField(
-        "Style Image",
-        validators=[
-            FileAllowed(
-                ["jpg", "jpeg", "png", "jfif", "webp",
-                 "bmp", "gif", "tif", "tiff"],
-                "Unsupported image format."
-            )
-        ]
-    )
-
-    content_path = HiddenField()
-    style_path = HiddenField()
-
-    alpha = FloatField(
-        "Alpha",
-        default=1.0,
-        validators=[
-            InputRequired(),
-            NumberRange(min=0, max=1)
-        ]
-    )
-
-    submit = SubmitField("Transfer Style")
-
-
-# Load models
-encoder = VGGEncoder(str(VGG_PATH)).to(device).eval()
-decoder = Decoder().to(device)
-
-decoder.load_state_dict(
-    torch.load(
-        DECODER_PATH,
-        map_location=device,
-        weights_only=True
-    )
-)
-
-decoder.eval()
-
-print(f"Model loaded successfully on {device}")
-print(f"Image resolution: {IMAGE_SIZE}x{IMAGE_SIZE}")
 
 
 # Upload image and validate its actual contents
@@ -218,19 +245,66 @@ def load_image(path):
         ) from exc
 
 
+# Resize image while preserving aspect ratio
+def resize_for_model(image):
+    width, height = image.size
+
+    scale = min(
+        IMAGE_SIZE / width,
+        IMAGE_SIZE / height
+    )
+
+    new_width = max(
+        8,
+        min(
+            IMAGE_SIZE,
+            int(round(width * scale / 8)) * 8
+        )
+    )
+
+    new_height = max(
+        8,
+        min(
+            IMAGE_SIZE,
+            int(round(height * scale / 8)) * 8
+        )
+    )
+
+    return image.resize(
+        (new_width, new_height),
+        Image.Resampling.LANCZOS
+    )
+
+
 # AdaIN style transfer
 def style_transfer(content_image, style_image, alpha):
-    transform = transforms.Compose([
-        transforms.Resize(IMAGE_SIZE),
-        transforms.ToTensor()
-    ])
+    content_image = resize_for_model(content_image)
+    style_image = resize_for_model(style_image)
 
-    content_tensor = transform(content_image).unsqueeze(0).to(device)
-    style_tensor = transform(style_image).unsqueeze(0).to(device)
+    to_tensor = transforms.ToTensor()
+
+    content_tensor = (
+        to_tensor(content_image)
+        .unsqueeze(0)
+        .to(device)
+    )
+
+    style_tensor = (
+        to_tensor(style_image)
+        .unsqueeze(0)
+        .to(device)
+    )
 
     with torch.inference_mode():
-        content_features = encoder(content_tensor, is_test=True)
-        style_features = encoder(style_tensor, is_test=True)
+        content_features = encoder(
+            content_tensor,
+            is_test=True
+        )
+
+        style_features = encoder(
+            style_tensor,
+            is_test=True
+        )
 
         stylized_features = adaptive_instance_normalization(
             content_features,
@@ -261,7 +335,6 @@ def index():
 
     if form.validate_on_submit():
         try:
-            # Reuse saved content image or upload a new one
             if form.content.data and form.content.data.filename:
                 content_filename = save_upload(form.content.data)
             else:
@@ -269,7 +342,6 @@ def index():
                     form.content_path.data
                 )
 
-            # Reuse saved style image or upload a new one
             if form.style.data and form.style.data.filename:
                 style_filename = save_upload(form.style.data)
             else:
@@ -302,14 +374,16 @@ def index():
                 UPLOAD_DIR / style_filename
             )
 
-            # Generate stylized image
             output = style_transfer(
                 content_image,
                 style_image,
                 alpha
             )
 
-            result_filename = f"result_{uuid.uuid4().hex}.png"
+            result_filename = (
+                f"result_{uuid.uuid4().hex}.png"
+            )
+
             result_path = UPLOAD_DIR / result_filename
 
             output.save(result_path, format="PNG")
@@ -330,7 +404,7 @@ def index():
             "Please check your image files and style strength."
         )
 
-    # Preserve uploaded image references for the next submission
+    # Preserve uploaded image references
     form.content_path.data = (
         content_filename
         or valid_saved_filename(form.content_path.data)
