@@ -1,4 +1,4 @@
-
+﻿
 import os
 import uuid
 from pathlib import Path
@@ -67,7 +67,7 @@ device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-IMAGE_SIZE = int(os.environ.get("IMAGE_SIZE", "256"))
+IMAGE_SIZE = int(os.environ.get("IMAGE_SIZE", "128"))
 
 if IMAGE_SIZE not in (128, 256, 512):
     raise ValueError("IMAGE_SIZE must be 128, 256 or 512")
@@ -457,3 +457,4 @@ if __name__ == "__main__":
         port=5000,
         debug=False
     )
+
